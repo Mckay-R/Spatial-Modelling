@@ -90,7 +90,7 @@ ggplot(data = Penn,
                        guide = guide_colorbar(title.position = "top"),
                       midpoint = 1, low = "blue", mid = "grey", high = "red")
 ```
-Figure 1 is the choropleth map, it helps us understand the risk of lung cancer across Pennsylvania. In counties with $SMR = 1$, the number of lung cancer cases observed is the same as the number of expected cases. In counties where $SIR > 1$, the number of lung cancer cases observed is higher than the expected cases. Counties where $SMR < 1$ have fewer lung cancer cases observed than expected.
+Figure 1 is the choropleth map, it helps us understand the risk of lung cancer across Pennsylvania. In counties with $SMR = 1$, the number of lung cancer cases observed is the same as the number of expected cases. In counties where $SMR > 1$, the number of lung cancer cases observed is higher than the expected cases. Counties where $SMR < 1$ have fewer lung cancer cases observed than expected.
 
 ### GGmap of lung cancer cases.
 
@@ -109,6 +109,7 @@ ggmap(map.C) +
        subtitle = "The bigger the circle the higher the number of cases",
        x="Longitude", y="Latitude")
 ```
+
 Figure 2 shows the size of lung cancer cases relative to other counties in Pennsylvania. Counties like Pittsburgh, Latrobe Johnson, Philadelphia, Delaware, Montgomery etc had prominent cases of lung cancer in Pennsylvania in 2002.
 
 ### Histogram
@@ -129,7 +130,7 @@ Figure 3 shows the distribution of lung cancer cases across counties in Pennsylv
 
 # 3.0 Methods
 
-For the model fit, we consider a model that accounts for the spatial associations between counties in Pennsylvania. This model allows us to borrow information from neighboring counties. Instead of conditioning the observed cases on the standardized morbidity ratios that fails to capture the disease risk in some counties due to population size differences, a Poisson model with spatial random effect is used that incorporate covariates information resulting in the smoothing of extreme values based on small sample sizes (Gelfand et al. 2010)
+For the model fit, I consider a model that accounts for the spatial associations between counties in Pennsylvania. This model allows me to borrow information from neighboring counties. Instead of conditioning the observed cases on the Standardized Morbidity Ratios (SMR) which often fails to capture the disease risk in some counties due to population size differences, a Poisson model with spatial random effect is used that incorporates covariates information resulting in the smoothing of extreme values based on small sample sizes (Gelfand et al. 2010)
 
 
 ## 3.1 Model Specifications
@@ -190,13 +191,14 @@ model.fit <- inla(formula,
   family = "poisson", data = map@data,
   E = exp.cases, control.predictor = list(compute = TRUE))
 #summary(model.fit)
+#model.fit$summary.fitted.values
 ```
 
 For the analysis, I used the log-normal Poisson model proposed by Besag York Mollié  (BYM) 1991. The model includes both an CAR component for spatial smoothing and an ordinary random-effects component for non-spatial heterogeneity. The (BYM) model was adopted and the lung cancer disease risk estimates were obtained for each of the counties in Pennsylvania using the integrated nested laplace approximation (INLA) method. 
 
 Using INLA in R, the fitted model is given below:
 
-* Model with with CAR spatial random effect and ordinary random effects for non-spatial heterogeneity. 
+* Model with CAR spatial random effect and ordinary random effects for non-spatial heterogeneity. 
 
 \begin{eqnarray*}
 Log(\hat{\psi_i)} &=& -0.323 + 1.155Smoking_i 
@@ -205,11 +207,11 @@ Log(\hat{\psi_i)} &=& -0.323 + 1.155Smoking_i
 
 # 5.0 Model Summary
 
-Based on our model, the intercept is $-0.323$ with a 95\% credible interval of $(-0.621, -0.028)$. This is the estimated average lung cancer disease risk in county $i$ with smoking proportion equal to $0$. The coefficient of `smoking` $(1.155)$ is the expected difference in number of lung cancer cases (on the logarithm scale) for one unit increase in smoking proportion with a 95\% credible interval of $(-0.081, 2.384)$. In other hands, for one unit increase in smoking proportion, the incident of lung cancer increases by a factor of $exp(1.155)$, holding other predictor constant in the model.
+Based on the model, the intercept is $-0.323$ with a 95\% credible interval of $(-0.621, -0.028)$. This is the estimated average lung cancer disease risk in county $i$ with smoking proportion equal to $0$. The coefficient of `smoking` $(1.155)$ is the expected difference in number of lung cancer cases (on the logarithm scale) for one unit increase in smoking proportion with a 95\% credible interval of $(-0.081, 2.384)$. In other hands, for one unit increase in smoking proportion, the incident of lung cancer increases by a factor of `r exp(1.155)`, holding other predictor constant in the model.
 
 ### Visualizing Risk of Lung Cancer Pennsylvania
 
-To do this, I created a leaflet plot showing the risk of lung cancer for each of the counties in Pennsylvania in 2002. The mean risk estimates of lung cancer for each of the counties will be displayed on this plot, together with the standardized morbidity ratios, proportion of smokers, and the actual number of lung cancer cases. These risk estimates will be extracted from the model result from INLA. The posterior mean and corresponding 95\% credible interval are in `model.fit$summary.fitted.values`.
+To do this, I created a leaflet plot showing the risk of lung cancer for each of the counties in Pennsylvania in 2002. The mean risk estimates of lung cancer for each of the counties will be displayed on this plot, together with the standardized morbidity ratios, proportion of smokers, and the actual number of lung cancer cases. These risk estimates will be extracted from the model result from INLA. 
 
 Based on the leaflet map in Figure 4, it appears that majority of the counties with high risk of lung cancer are located in the west, with a few in the south east of Pennsylvania (specifically, Philadelphia, Bucks), and counties with lower risk of lung cancer are located in the center.. The corresponding 95\% credible intervals indicate the uncertainty in the risk estimates.
 
@@ -221,6 +223,8 @@ map$RR <- model.fit$summary.fitted.values[, "mean"]
 map$LL <- model.fit$summary.fitted.values[, "0.025quant"]
 map$UL <- model.fit$summary.fitted.values[, "0.975quant"]
 #map@data
+#median(map$RR)
+#The posterior mean and the corresponding 95\% credible interval are in `r model.fit$summary.fitted.values`.
 ```
 
 
